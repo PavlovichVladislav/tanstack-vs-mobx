@@ -1,7 +1,9 @@
 import type { PropsWithChildren } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 
+import { useMe } from '@/demo/tanstack/queries/use-me'
 import { styles } from './styles'
+import { UserBadge } from '@/shared/ui/user-badge';
 
 function AppNavLink(props: { to: string; label: string }) {
   const pathname = useRouterState({
@@ -21,6 +23,8 @@ function AppNavLink(props: { to: string; label: string }) {
 }
 
 export function AppLayout({ children }: PropsWithChildren) {
+  const meQuery = useMe()
+
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -32,6 +36,8 @@ export function AppLayout({ children }: PropsWithChildren) {
             <AppNavLink to="/tanstack" label="TanStack" />
             <AppNavLink to="/mobx" label="MobX" />
           </nav>
+
+          <UserBadge user={meQuery.data} isLoading={meQuery.isLoading} />
         </div>
       </header>
 

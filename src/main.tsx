@@ -4,9 +4,12 @@ import { RouterProvider } from '@tanstack/react-router'
 
 import { router } from '@/app/router/router'
 import '@/app/styles/index.css'
+import { AppQueryProvider } from './app/providers/query/query-provider'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AppQueryProvider>
+      <RouterProvider router={router} />
+    </AppQueryProvider>
   </React.StrictMode>,
 )
