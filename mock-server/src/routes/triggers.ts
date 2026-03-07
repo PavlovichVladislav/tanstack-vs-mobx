@@ -20,7 +20,11 @@ router.patch("/:id", async (req, res) => {
   const trigger = triggers.find((t) => t.id === req.params.id)
 
   if (!trigger) {
-    return res.status(404).json({ message: "Not found" })
+    return res.status(404).json({
+      message: "Counter not found",
+      code: "NOT_FOUND",
+      details: { counterId: req.params.id }
+    })
   }
 
   Object.assign(trigger, req.body)

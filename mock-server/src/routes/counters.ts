@@ -26,7 +26,11 @@ router.get("/:id", async (req, res) => {
   const counter = counters.find((c) => c.id === req.params.id)
 
   if (!counter) {
-    return res.status(404).json({ message: "Not found" })
+    return res.status(404).json({
+      message: "Counter not found",
+      code: "NOT_FOUND",
+      details: { counterId: req.params.id }
+    })
   }
 
   res.json(counter)
@@ -38,7 +42,11 @@ router.post("/:id/remove-ban", async (req, res) => {
   const counter = counters.find((c) => c.id === req.params.id)
 
   if (!counter) {
-    return res.status(404).json({ message: "Not found" })
+    return res.status(404).json({
+      message: "Counter not found",
+      code: "NOT_FOUND",
+      details: { counterId: req.params.id }
+    })
   }
 
   counter.isBanned = false
