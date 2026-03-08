@@ -1,6 +1,9 @@
 import { observer } from 'mobx-react-lite'
 
+import { useCounter } from '@/demo/tanstack/queries/use-counter'
 import { useCounters } from '@/demo/tanstack/queries/use-counters'
+import { useTriggers } from '@/demo/tanstack/queries/use-triggers'
+import { useRemoveBan } from '@/demo/tanstack/mutations/use-remove-ban'
 import {
   TanstackStoresProvider,
   useTanstackUiStore,
@@ -11,16 +14,52 @@ import { inputStyles } from '@/shared/ui/input.styles'
 
 import { styles } from './styles'
 
+function formatTime(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString()
+}
+
+/**
+ * Разделяется серверный и ui стейт.
+ * Серверный - все, что приходит/уходит на сервер.
+ * Ui - то, с чем взаимодействуем в UI (search string, id счетчика, любые другие артефакты взаимодействий)
+ */
 const TanstackDashboardContent = observer(() => {
   const uiStore = useTanstackUiStore()
 
+  /** @todo для поиска есть дебаунс? */
   const countersQuery = useCounters({
     search: uiStore.search,
   })
 
+  const counterQuery = useCounter({
+    counterId: uiStore.selectedCounterId,
+  })
+
+  const triggersQuery = useTriggers({
+    counterId: uiStore.selectedCounterId,
+  })
+
+  const removeBanMutation = useRemoveBan()
+
+  /** @todo а еслиб это был другой компонент? т.е. хочется попробовать раскидать это на разные компоненты */
   const selectedCounter =
+    counterQuery.data ??
     countersQuery.data?.find((counter) => counter.id === uiStore.selectedCounterId) ??
     null
+
+  const totalCounters = countersQuery.data?.length ?? 0
+  const bannedCounters =
+    countersQuery.data?.filter((counter) => counter.isBanned).length ?? 0
+  const enabledTriggers =
+    triggersQuery.data?.filter((trigger) => trigger.enabled).length ?? 0
+
+  const handleRemoveBan = () => {
+    if (!selectedCounter) {
+      return
+    }
+
+    removeBanMutation.mutate(selectedCounter.id)
+  }
 
   return (
     <div className={styles.page}>
@@ -28,9 +67,9 @@ const TanstackDashboardContent = observer(() => {
         <div className={styles.headerText}>
           <h1 className={styles.title}>TanStack dashboard</h1>
           <p className={styles.description}>
-            Первая рабочая версия: search лежит в MobX UI-store, server state —
-            в TanStack Query. Дальше сюда добавим summary, details, remove ban,
-            triggers и polling comparison.
+            Здесь уже видно разделение ответственности: search и selected state
+            лежат в MobX UI-store, а counters / details / triggers — в TanStack
+            Query.
           </p>
         </div>
 
@@ -70,12 +109,22 @@ const TanstackDashboardContent = observer(() => {
           </div>
         )}
 
-        <div className={styles.status}>
-          Total: {countersQuery.data?.length ?? 0}
-        </div>
+        {counterQuery.isFetching && uiStore.selectedCounterId && (
+          <div className={styles.statusFetching}>Loading selected counter...</div>
+        )}
+
+        {triggersQuery.isFetching && uiStore.selectedCounterId && (
+          <div className={styles.statusFetching}>Loading triggers...</div>
+        )}
+
+        {removeBanMutation.isPending && (
+          <div className={styles.statusFetching}>Removing ban...</div>
+        )}
+
+        <div className={styles.status}>List size: {totalCounters}</div>
       </div>
 
-      <div className={styles.grid}>
+      <div className={styles.topGrid}>
         <section className={cardStyles.root}>
           <div className={styles.panelTitle}>Counters</div>
 
@@ -109,7 +158,7 @@ const TanstackDashboardContent = observer(() => {
                           {counter.isBanned ? 'Yes' : 'No'}
                         </td>
                         <td className={styles.td}>
-                          {new Date(counter.updatedAt).toLocaleTimeString()}
+                          {formatTime(counter.updatedAt)}
                         </td>
                       </tr>
                     )
@@ -129,42 +178,167 @@ const TanstackDashboardContent = observer(() => {
         </section>
 
         <aside className={cardStyles.root}>
-          <div className={styles.panelTitle}>Selection</div>
+          <div className={styles.panelTitle}>Summary</div>
 
-          <div className={styles.sideList}>
-            <div className={styles.sideItem}>
-              <div className={styles.sideLabel}>Selected counter</div>
-              <div className={styles.sideValue}>
-                {selectedCounter?.name ?? 'Nothing selected'}
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryLabel}>Total counters</div>
+              <div className={styles.summaryValue}>{totalCounters}</div>
+              <div className={styles.summaryHint}>
+                Берётся из того же query cache, что и таблица.
               </div>
             </div>
 
-            <div className={styles.sideItem}>
-              <div className={styles.sideLabel}>Counter id</div>
-              <div className={`${styles.sideValue} ${styles.mono}`}>
-                {selectedCounter?.id ?? '—'}
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryLabel}>Banned counters</div>
+              <div className={styles.summaryValue}>{bannedCounters}</div>
+              <div className={styles.summaryHint}>
+                Отдельный store для summary не нужен.
               </div>
             </div>
 
-            <div className={styles.sideItem}>
-              <div className={styles.sideLabel}>Ban status</div>
-              <div className={styles.sideValue}>
-                {selectedCounter
-                  ? selectedCounter.isBanned
-                    ? 'Banned'
-                    : 'Active'
-                  : '—'}
-              </div>
-            </div>
-
-            <div className={styles.sideItem}>
-              <div className={styles.sideLabel}>Observation</div>
-              <div className={styles.sideValue}>
-                Sidebar использует тот же query result, без отдельной загрузки и
-                без дублирования данных в store.
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryLabel}>Enabled triggers</div>
+              <div className={styles.summaryValue}>{enabledTriggers}</div>
+              <div className={styles.summaryHint}>
+                Для выбранного counter загружается отдельный query.
               </div>
             </div>
           </div>
+        </aside>
+      </div>
+
+      {/* Details - отдельный query, triggers уже есть, но при этом грузим детали отдельно для каждого. */}
+      <div className={styles.bottomGrid}>
+        <section className={cardStyles.root}>
+          <div className={styles.panelTitle}>Counter details</div>
+
+          {selectedCounter ? (
+            <>
+              <div className={styles.detailsGrid}>
+                <div className={styles.detailRow}>
+                  <div className={styles.detailKey}>Name</div>
+                  <div className={styles.detailValueStrong}>
+                    {selectedCounter.name}
+                  </div>
+                </div>
+
+                <div className={styles.detailRow}>
+                  <div className={styles.detailKey}>Counter id</div>
+                  <div className={`${styles.detailValue} ${styles.mono}`}>
+                    {selectedCounter.id}
+                  </div>
+                </div>
+
+                <div className={styles.detailRow}>
+                  <div className={styles.detailKey}>Current value</div>
+                  <div className={styles.detailValue}>
+                    {selectedCounter.currentValue}
+                  </div>
+                </div>
+
+                <div className={styles.detailRow}>
+                  <div className={styles.detailKey}>Limit</div>
+                  <div className={styles.detailValue}>{selectedCounter.limit}</div>
+                </div>
+
+                <div className={styles.detailRow}>
+                  <div className={styles.detailKey}>Ban status</div>
+                  <div className={styles.detailValueStrong}>
+                    {selectedCounter.isBanned ? 'Banned' : 'Active'}
+                  </div>
+                </div>
+
+                <div className={styles.detailRow}>
+                  <div className={styles.detailKey}>Updated at</div>
+                  <div className={styles.detailValue}>
+                    {formatTime(selectedCounter.updatedAt)}
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.actionRow}>
+                <button
+                  type="button"
+                  className={buttonStyles.primary}
+                  onClick={handleRemoveBan}
+                  disabled={
+                    !selectedCounter.isBanned || removeBanMutation.isPending
+                  }
+                >
+                  Remove ban
+                </button>
+
+                <div className={styles.infoText}>
+                  После mutation инвалидируются list и details query.
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className={styles.sideList}>
+              <div className={styles.sideItem}>
+                <div className={styles.sideLabel}>Selection</div>
+                <div className={styles.sideValue}>
+                  Choose a counter from the table.
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Trigers - показывает композицию query хуков. */}
+        <aside className={cardStyles.root}>
+          <div className={styles.panelTitle}>Triggers</div>
+
+          {uiStore.selectedCounterId ? (
+            triggersQuery.data?.length ? (
+              <div className={styles.triggersList}>
+                {triggersQuery.data.map((trigger) => (
+                  <div key={trigger.id} className={styles.triggerItem}>
+                    <div className={styles.triggerHeader}>
+                      <div className={styles.triggerTitle}>
+                        {trigger.type} / threshold {trigger.threshold}
+                      </div>
+
+                      <div
+                        className={
+                          trigger.enabled
+                            ? styles.triggerStatusOn
+                            : styles.triggerStatusOff
+                        }
+                      >
+                        {trigger.enabled ? 'Enabled' : 'Disabled'}
+                      </div>
+                    </div>
+
+                    <div className={styles.triggerMeta}>
+                      triggerId: {trigger.id} · counterId: {trigger.counterId}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : triggersQuery.isLoading ? (
+              <div className={styles.sideList}>
+                <div className={styles.sideItem}>
+                  <div className={styles.sideValue}>Loading triggers...</div>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.sideList}>
+                <div className={styles.sideItem}>
+                  <div className={styles.sideValue}>No triggers found.</div>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className={styles.sideList}>
+              <div className={styles.sideItem}>
+                <div className={styles.sideValue}>
+                  Select a counter to load triggers.
+                </div>
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </div>
