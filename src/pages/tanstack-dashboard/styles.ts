@@ -46,11 +46,11 @@ export const styles = {
   detailValueStrong: 'text-sm font-medium text-white',
 
   triggersList: 'mt-4 space-y-3',
-  triggerItem:
-    'rounded-xl border border-slate-800 bg-slate-950 p-4',
+  triggerItem: 'rounded-xl border border-slate-800 bg-slate-950 p-4',
   triggerHeader: 'flex items-center justify-between gap-3',
   triggerTitle: 'text-sm font-medium text-white',
   triggerMeta: 'mt-2 text-xs text-slate-400',
+  triggerActions: 'mt-4 flex items-center justify-end',
   triggerStatusOn:
     'inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-300',
   triggerStatusOff:

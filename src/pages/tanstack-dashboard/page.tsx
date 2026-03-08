@@ -1,9 +1,10 @@
 import { observer } from 'mobx-react-lite'
 
+import { useRemoveBan } from '@/demo/tanstack/mutations/use-remove-ban'
+import { useUpdateTrigger } from '@/demo/tanstack/mutations/use-update-trigger'
 import { useCounter } from '@/demo/tanstack/queries/use-counter'
 import { useCounters } from '@/demo/tanstack/queries/use-counters'
 import { useTriggers } from '@/demo/tanstack/queries/use-triggers'
-import { useRemoveBan } from '@/demo/tanstack/mutations/use-remove-ban'
 import {
   TanstackStoresProvider,
   useTanstackUiStore,
@@ -11,6 +12,7 @@ import {
 import { buttonStyles } from '@/shared/ui/button.styles'
 import { cardStyles } from '@/shared/ui/card.styles'
 import { inputStyles } from '@/shared/ui/input.styles'
+import { TriggerEditorModal } from '@/widgets/trigger-editor/ui/trigger-editor-modal'
 
 import { styles } from './styles'
 
@@ -22,6 +24,9 @@ function formatTime(timestamp: number) {
  * Разделяется серверный и ui стейт.
  * Серверный - все, что приходит/уходит на сервер.
  * Ui - то, с чем взаимодействуем в UI (search string, id счетчика, любые другие артефакты взаимодействий)
+ * 
+ * @todo рефакторинг - разнести на отдельные компоненты. Мб в слоях завести tanstack/mobx папки и там чет создавать
+ * чтоб было и с fsd совместимо и не лепнина из компонент внутри одного файла
  */
 const TanstackDashboardContent = observer(() => {
   const uiStore = useTanstackUiStore()
@@ -40,12 +45,18 @@ const TanstackDashboardContent = observer(() => {
   })
 
   const removeBanMutation = useRemoveBan()
+  const updateTriggerMutation = useUpdateTrigger()
 
   /** @todo а еслиб это был другой компонент? т.е. хочется попробовать раскидать это на разные компоненты */
   const selectedCounter =
     counterQuery.data ??
     countersQuery.data?.find((counter) => counter.id === uiStore.selectedCounterId) ??
     null
+
+  const editingTrigger =
+    triggersQuery.data?.find(
+      (trigger) => trigger.id === uiStore.editingTriggerId,
+    ) ?? null
 
   const totalCounters = countersQuery.data?.length ?? 0
   const bannedCounters =
@@ -61,15 +72,37 @@ const TanstackDashboardContent = observer(() => {
     removeBanMutation.mutate(selectedCounter.id)
   }
 
+  const handleSubmitTrigger = (payload: {
+    threshold: number
+    enabled: boolean
+  }) => {
+    if (!editingTrigger || !uiStore.selectedCounterId) {
+      return
+    }
+
+    updateTriggerMutation.mutate(
+      {
+        triggerId: editingTrigger.id,
+        counterId: uiStore.selectedCounterId,
+        payload,
+      },
+      {
+        onSuccess: () => {
+          uiStore.closeTriggerModal()
+        },
+      },
+    )
+  }
+
   return (
     <div className={styles.page}>
       <section className={styles.header}>
         <div className={styles.headerText}>
           <h1 className={styles.title}>TanStack dashboard</h1>
           <p className={styles.description}>
-            Здесь уже видно разделение ответственности: search и selected state
-            лежат в MobX UI-store, а counters / details / triggers — в TanStack
-            Query.
+            Search и selected state лежат в MobX UI-store, а counters / details /
+            triggers — в TanStack Query. Для trigger update используем mutation с
+            точечным обновлением query cache.
           </p>
         </div>
 
@@ -119,6 +152,18 @@ const TanstackDashboardContent = observer(() => {
 
         {removeBanMutation.isPending && (
           <div className={styles.statusFetching}>Removing ban...</div>
+        )}
+
+        {updateTriggerMutation.isPending && (
+          <div className={styles.statusFetching}>Saving trigger...</div>
+        )}
+
+        {updateTriggerMutation.isError && (
+          <div className={styles.statusError}>
+            {updateTriggerMutation.error instanceof Error
+              ? updateTriggerMutation.error.message
+              : 'Trigger update failed'}
+          </div>
         )}
 
         <div className={styles.status}>List size: {totalCounters}</div>
@@ -193,7 +238,7 @@ const TanstackDashboardContent = observer(() => {
               <div className={styles.summaryLabel}>Banned counters</div>
               <div className={styles.summaryValue}>{bannedCounters}</div>
               <div className={styles.summaryHint}>
-                Отдельный store для summary не нужен.
+                После remove ban значение обновляется без отдельного store.
               </div>
             </div>
 
@@ -270,7 +315,7 @@ const TanstackDashboardContent = observer(() => {
                 </button>
 
                 <div className={styles.infoText}>
-                  После mutation инвалидируются list и details query.
+                  Remove ban использует mutation + invalidate list/details.
                 </div>
               </div>
             </>
@@ -314,6 +359,16 @@ const TanstackDashboardContent = observer(() => {
                     <div className={styles.triggerMeta}>
                       triggerId: {trigger.id} · counterId: {trigger.counterId}
                     </div>
+
+                    <div className={styles.triggerActions}>
+                      <button
+                        type="button"
+                        className={buttonStyles.secondary}
+                        onClick={() => uiStore.openTriggerModal(trigger.id)}
+                      >
+                        Edit trigger
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -341,6 +396,21 @@ const TanstackDashboardContent = observer(() => {
           )}
         </aside>
       </div>
+
+      <TriggerEditorModal
+        open={uiStore.isTriggerModalOpen}
+        trigger={editingTrigger}
+        isSaving={updateTriggerMutation.isPending}
+        errorMessage={
+          updateTriggerMutation.isError
+            ? updateTriggerMutation.error instanceof Error
+              ? updateTriggerMutation.error.message
+              : 'Failed to update trigger'
+            : null
+        }
+        onClose={() => uiStore.closeTriggerModal()}
+        onSubmit={handleSubmitTrigger}
+      />
     </div>
   )
 })

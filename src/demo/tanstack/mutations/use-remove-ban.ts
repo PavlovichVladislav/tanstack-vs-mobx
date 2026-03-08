@@ -6,6 +6,7 @@ import { tanstackQueryKeys } from '../query-keys'
 export function useRemoveBan() {
   const queryClient = useQueryClient()
 
+  /** @todo детальнее покопать принцип работы мутации */
   return useMutation({
     mutationFn: (counterId: string) => countersApi.removeBan(counterId),
 
