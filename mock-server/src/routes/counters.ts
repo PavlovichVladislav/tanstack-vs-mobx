@@ -1,58 +1,85 @@
-import { Router } from "express"
-import { counters } from "../data/db"
-import { delay } from "../utils/delay"
+import { Router } from 'express'
+
+import { counters } from '../data/db'
+import { delay } from '../utils/delay'
+import { sendError } from '../utils/http-error'
+import { shouldFail } from '../utils/random-error'
 
 const router = Router()
 
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
   await delay()
 
-  const search = req.query.search?.toString().toLowerCase()
+  if (shouldFail(0.08)) {
+    return sendError(res, 500, {
+      message: 'Temporary counters list failure',
+      code: 'SERVER_ERROR',
+      details: {
+        route: 'GET /api/counters',
+      },
+    })
+  }
+
+  const search = req.query.search?.toString().trim().toLowerCase()
 
   if (!search) {
     return res.json(counters)
   }
 
-  const filtered = counters.filter((c) =>
-    c.name.toLowerCase().includes(search)
+  const filtered = counters.filter((counter) =>
+    counter.name.toLowerCase().includes(search),
   )
 
-  res.json(filtered)
+  return res.json(filtered)
 })
 
-router.get("/:id", async (req, res) => {
+router.get('/:id', async (req, res) => {
   await delay()
 
-  const counter = counters.find((c) => c.id === req.params.id)
+  const counter = counters.find((item) => item.id === req.params.id)
 
   if (!counter) {
-    return res.status(404).json({
-      message: "Counter not found",
-      code: "NOT_FOUND",
-      details: { counterId: req.params.id }
+    return sendError(res, 404, {
+      message: 'Counter not found',
+      code: 'NOT_FOUND',
+      details: {
+        counterId: req.params.id,
+      },
     })
   }
 
-  res.json(counter)
+  if (shouldFail(0.05)) {
+    return sendError(res, 500, {
+      message: 'Temporary counter details failure',
+      code: 'SERVER_ERROR',
+      details: {
+        counterId: req.params.id,
+      },
+    })
+  }
+
+  return res.json(counter)
 })
 
-router.post("/:id/remove-ban", async (req, res) => {
+router.post('/:id/remove-ban', async (req, res) => {
   await delay()
 
-  const counter = counters.find((c) => c.id === req.params.id)
+  const counter = counters.find((item) => item.id === req.params.id)
 
   if (!counter) {
-    return res.status(404).json({
-      message: "Counter not found",
-      code: "NOT_FOUND",
-      details: { counterId: req.params.id }
+    return sendError(res, 404, {
+      message: 'Counter not found',
+      code: 'NOT_FOUND',
+      details: {
+        counterId: req.params.id,
+      },
     })
   }
 
   counter.isBanned = false
   counter.updatedAt = Date.now()
 
-  res.json(counter)
+  return res.json(counter)
 })
 
 export default router

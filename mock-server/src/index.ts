@@ -1,9 +1,13 @@
-import express from "express"
-import cors from "cors"
+import cors from 'cors'
+import express from 'express'
 
-import userRoutes from "./routes/user"
-import countersRoutes from "./routes/counters"
-import triggersRoutes from "./routes/triggers"
+import { SERVER_PORT } from './constants/server'
+import countersRoutes from './routes/counters'
+import debugRoutes from './routes/debug'
+import triggersRoutes from './routes/triggers'
+import userRoutes from './routes/user'
+import { startCountersTicker } from './utils/counters-ticker'
+import { requestMetricsMiddleware } from './utils/request-metrics'
 
 const app = express()
 
@@ -14,13 +18,15 @@ app.use(
   })
 )
 app.use(express.json())
+app.use(requestMetricsMiddleware)
 
-app.use("/api", userRoutes)
-app.use("/api/counters", countersRoutes)
-app.use("/api/triggers", triggersRoutes)
+app.use('/api', userRoutes)
+app.use('/api/counters', countersRoutes)
+app.use('/api/triggers', triggersRoutes)
+app.use('/api/debug', debugRoutes)
 
-const PORT = 4000
+startCountersTicker()
 
-app.listen(PORT, () => {
-  console.log(`Mock API running on http://localhost:${PORT}`)
+app.listen(SERVER_PORT, () => {
+  console.log(`Mock API running on http://localhost:${SERVER_PORT}`)
 })
