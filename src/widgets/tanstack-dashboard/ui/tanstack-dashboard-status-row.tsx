@@ -1,53 +1,52 @@
+import { useCounter } from '@/demo/tanstack/queries/use-counter'
+import { useCounters } from '@/demo/tanstack/queries/use-counters'
+import { useTriggers } from '@/demo/tanstack/queries/use-triggers'
 import { styles } from './styles'
 
 type TanstackDashboardStatusRowProps = {
-  isListLoading: boolean
-  isListFetching: boolean
-  isListError: boolean
-  listErrorMessage: string | null
-  isCounterFetching: boolean
-  isTriggersFetching: boolean
+  search: string
+  selectedCounterId: string | null
   isRemovingBan: boolean
   isSavingTrigger: boolean
   isTriggerSaveError: boolean
   triggerSaveErrorMessage: string | null
-  hasSelectedCounter: boolean
-  totalCounters: number
 }
 
 export function TanstackDashboardStatusRow({
-  isListLoading,
-  isListFetching,
-  isListError,
-  listErrorMessage,
-  isCounterFetching,
-  isTriggersFetching,
+  search,
+  selectedCounterId,
   isRemovingBan,
   isSavingTrigger,
   isTriggerSaveError,
   triggerSaveErrorMessage,
-  hasSelectedCounter,
-  totalCounters,
 }: TanstackDashboardStatusRowProps) {
+  const countersQuery = useCounters({ search })
+  const counterQuery = useCounter({ counterId: selectedCounterId })
+  const triggersQuery = useTriggers({ counterId: selectedCounterId })
+
   return (
     <div className={styles.statusRow}>
-      {isListLoading && <div className={styles.status}>Initial loading...</div>}
+      {countersQuery.isLoading && (
+        <div className={styles.status}>Initial loading...</div>
+      )}
 
-      {isListFetching && !isListLoading && (
+      {countersQuery.isFetching && !countersQuery.isLoading && (
         <div className={styles.statusFetching}>Background fetching...</div>
       )}
 
-      {isListError && (
+      {countersQuery.isError && (
         <div className={styles.statusError}>
-          {listErrorMessage ?? 'Unknown error'}
+          {countersQuery.error instanceof Error
+            ? countersQuery.error.message
+            : 'Unknown error'}
         </div>
       )}
 
-      {isCounterFetching && hasSelectedCounter && (
+      {counterQuery.isFetching && selectedCounterId && (
         <div className={styles.statusFetching}>Loading selected counter...</div>
       )}
 
-      {isTriggersFetching && hasSelectedCounter && (
+      {triggersQuery.isFetching && selectedCounterId && (
         <div className={styles.statusFetching}>Loading triggers...</div>
       )}
 
@@ -65,7 +64,9 @@ export function TanstackDashboardStatusRow({
         </div>
       )}
 
-      <div className={styles.status}>List size: {totalCounters}</div>
+      <div className={styles.status}>
+        List size: {countersQuery.data?.length ?? 0}
+      </div>
     </div>
   )
 }

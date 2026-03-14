@@ -1,21 +1,23 @@
-import type { Trigger } from '@/entities/trigger/types'
+import { useTriggers } from '@/demo/tanstack/queries/use-triggers'
 import { buttonStyles } from '@/shared/ui/button.styles'
 import { cardStyles } from '@/shared/ui/card.styles'
 import { styles } from './styles'
 
 type TanstackTriggersSectionProps = {
   selectedCounterId: string | null
-  triggers: Trigger[]
-  isLoading: boolean
   onEditTrigger: (triggerId: string) => void
 }
 
 export function TanstackTriggersSection({
   selectedCounterId,
-  triggers,
-  isLoading,
   onEditTrigger,
 }: TanstackTriggersSectionProps) {
+  const triggersQuery = useTriggers({
+    counterId: selectedCounterId,
+  })
+
+  const triggers = triggersQuery.data ?? []
+
   return (
     <aside className={cardStyles.root}>
       <div className={styles.panelTitle}>Triggers</div>
@@ -57,7 +59,7 @@ export function TanstackTriggersSection({
               </div>
             ))}
           </div>
-        ) : isLoading ? (
+        ) : triggersQuery.isLoading ? (
           <div className={styles.sideList}>
             <div className={styles.sideItem}>
               <div className={styles.sideValue}>Loading triggers...</div>

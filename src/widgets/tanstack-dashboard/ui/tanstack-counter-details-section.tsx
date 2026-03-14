@@ -1,12 +1,20 @@
-import type { Counter } from '@/entities/counter/types'
+import { useCounter } from '@/demo/tanstack/queries/use-counter'
 import { buttonStyles } from '@/shared/ui/button.styles'
 import { cardStyles } from '@/shared/ui/card.styles'
 import { styles } from './styles'
 
 type TanstackCounterDetailsSectionProps = {
-  counter: Counter | null
+  selectedCounterId: string | null
   isRemovingBan: boolean
-  onRemoveBan: () => void
+  fallbackCounter: {
+    id: string
+    name: string
+    limit: number
+    currentValue: number
+    isBanned: boolean
+    updatedAt: number
+  } | null
+  onRemoveBan: (counterId: string) => void
 }
 
 function formatTime(timestamp: number) {
@@ -14,10 +22,17 @@ function formatTime(timestamp: number) {
 }
 
 export function TanstackCounterDetailsSection({
-  counter,
+  selectedCounterId,
   isRemovingBan,
+  fallbackCounter,
   onRemoveBan,
 }: TanstackCounterDetailsSectionProps) {
+  const counterQuery = useCounter({
+    counterId: selectedCounterId,
+  })
+
+  const counter = counterQuery.data ?? fallbackCounter
+
   return (
     <section className={cardStyles.root}>
       <div className={styles.panelTitle}>Counter details</div>
@@ -56,7 +71,9 @@ export function TanstackCounterDetailsSection({
 
             <div className={styles.detailRow}>
               <div className={styles.detailKey}>Updated at</div>
-              <div className={styles.detailValue}>{formatTime(counter.updatedAt)}</div>
+              <div className={styles.detailValue}>
+                {formatTime(counter.updatedAt)}
+              </div>
             </div>
           </div>
 
@@ -64,14 +81,14 @@ export function TanstackCounterDetailsSection({
             <button
               type="button"
               className={buttonStyles.primary}
-              onClick={onRemoveBan}
+              onClick={() => onRemoveBan(counter.id)}
               disabled={!counter.isBanned || isRemovingBan}
             >
               Remove ban
             </button>
 
             <div className={styles.infoText}>
-              Remove ban использует mutation + invalidate list/details.
+              Этот блок сам вызывает useCounter, без прокидывания details сверху.
             </div>
           </div>
         </>

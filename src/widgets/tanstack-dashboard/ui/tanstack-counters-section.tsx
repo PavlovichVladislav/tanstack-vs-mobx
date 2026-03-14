@@ -1,11 +1,10 @@
-import type { Counter } from '@/entities/counter/types'
+import { useCounters } from '@/demo/tanstack/queries/use-counters'
 import { cardStyles } from '@/shared/ui/card.styles'
 import { styles } from './styles'
 
 type TanstackCountersSectionProps = {
-  counters: Counter[]
+  search: string
   selectedCounterId: string | null
-  isLoading: boolean
   onSelectCounter: (counterId: string) => void
 }
 
@@ -14,11 +13,14 @@ function formatTime(timestamp: number) {
 }
 
 export function TanstackCountersSection({
-  counters,
+  search,
   selectedCounterId,
-  isLoading,
   onSelectCounter,
 }: TanstackCountersSectionProps) {
+  const countersQuery = useCounters({ search })
+
+  const counters = countersQuery.data ?? []
+
   return (
     <section className={cardStyles.root}>
       <div className={styles.panelTitle}>Counters</div>
@@ -57,7 +59,7 @@ export function TanstackCountersSection({
             ) : (
               <tr>
                 <td className={styles.empty} colSpan={5}>
-                  {isLoading ? 'Loading...' : 'No counters found'}
+                  {countersQuery.isLoading ? 'Loading...' : 'No counters found'}
                 </td>
               </tr>
             )}

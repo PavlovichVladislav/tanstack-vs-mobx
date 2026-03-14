@@ -1,17 +1,26 @@
+import { useCounters } from '@/demo/tanstack/queries/use-counters'
+import { useTriggers } from '@/demo/tanstack/queries/use-triggers'
 import { cardStyles } from '@/shared/ui/card.styles'
 import { styles } from './styles'
 
 type TanstackSummarySidebarProps = {
-  totalCounters: number
-  bannedCounters: number
-  enabledTriggers: number
+  search: string
+  selectedCounterId: string | null
 }
 
 export function TanstackSummarySidebar({
-  totalCounters,
-  bannedCounters,
-  enabledTriggers,
+  search,
+  selectedCounterId,
 }: TanstackSummarySidebarProps) {
+  const countersQuery = useCounters({ search })
+  const triggersQuery = useTriggers({ counterId: selectedCounterId })
+
+  const totalCounters = countersQuery.data?.length ?? 0
+  const bannedCounters =
+    countersQuery.data?.filter((counter) => counter.isBanned).length ?? 0
+  const enabledTriggers =
+    triggersQuery.data?.filter((trigger) => trigger.enabled).length ?? 0
+
   return (
     <aside className={cardStyles.root}>
       <div className={styles.panelTitle}>Summary</div>
@@ -21,7 +30,7 @@ export function TanstackSummarySidebar({
           <div className={styles.summaryLabel}>Total counters</div>
           <div className={styles.summaryValue}>{totalCounters}</div>
           <div className={styles.summaryHint}>
-            Берётся из того же query cache, что и таблица.
+            Этот виджет сам вызывает useCounters и читает shared cache.
           </div>
         </div>
 
@@ -29,7 +38,7 @@ export function TanstackSummarySidebar({
           <div className={styles.summaryLabel}>Banned counters</div>
           <div className={styles.summaryValue}>{bannedCounters}</div>
           <div className={styles.summaryHint}>
-            После remove ban значение обновляется без отдельного store.
+            Нет отдельного store только ради второго потребителя тех же данных.
           </div>
         </div>
 
@@ -37,7 +46,7 @@ export function TanstackSummarySidebar({
           <div className={styles.summaryLabel}>Enabled triggers</div>
           <div className={styles.summaryValue}>{enabledTriggers}</div>
           <div className={styles.summaryHint}>
-            Для выбранного counter загружается отдельный query.
+            Для выбранного counter этот блок сам вызывает useTriggers.
           </div>
         </div>
       </div>
