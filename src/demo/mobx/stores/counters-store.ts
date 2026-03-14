@@ -18,6 +18,7 @@ export class CountersStore {
   isRemovingBan = false
   removeBanError: string | null = null
 
+  /** Нужно для того, чтобы polling происходил с текущим значением в строке поиска. */
   currentSearch = ''
   pollingIntervalMs = 10_000
   private pollingTimerId: number | null = null
@@ -43,6 +44,11 @@ export class CountersStore {
 
     this.currentSearch = search
 
+    /** 
+     * @todo зачем разделять fetching и loading? 
+     * видимо, чтоб не показывать крутилку, но этого можно добиться проверкой наличия данных
+     * почему listError не во всех ошибках сбрасывается?
+    */
     if (silent) {
       this.isListFetching = true
     } else {
@@ -88,6 +94,7 @@ export class CountersStore {
       runInAction(() => {
         this.selectedCounter = counter
 
+        /** @todo а надо менять? */
         this.counters = this.counters.map((item) =>
           item.id === counter.id ? counter : item,
         )

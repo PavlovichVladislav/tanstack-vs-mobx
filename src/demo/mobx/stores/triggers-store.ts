@@ -5,6 +5,7 @@ import { triggersApi } from '@/shared/api/triggers-api'
 import { getErrorMessage } from '@/shared/lib/errors'
 
 export class TriggersStore {
+  /** Это кэшик? */
   triggersByCounterId = new Map<string, Trigger[]>()
 
   isLoading = false
