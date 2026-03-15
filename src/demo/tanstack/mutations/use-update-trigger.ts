@@ -13,7 +13,6 @@ type UpdateTriggerArgs = {
 export function useUpdateTrigger() {
   const queryClient = useQueryClient()
 
-  /** @todo откуда такая прокидка аргументов? */
   return useMutation({
     mutationFn: ({ triggerId, payload }: UpdateTriggerArgs) =>
       triggersApi.update(triggerId, payload),

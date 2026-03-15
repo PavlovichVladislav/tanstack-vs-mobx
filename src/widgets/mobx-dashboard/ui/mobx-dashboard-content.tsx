@@ -26,10 +26,14 @@ export const MobxDashboardContent = observer(() => {
   useEffect(() => {
     countersStore.startPolling()
 
+    /** При смене страницы не позволяем менять state неактуального экрана. */
     return () => {
       countersStore.stopPolling()
+      countersStore.abortPending()
+      triggersStore.abortPending()
+      authStore.abortPending()
     }
-  }, [countersStore])
+  }, [authStore, countersStore, triggersStore])
 
   useEffect(() => {
     if (!uiStore.selectedCounterId) {
@@ -69,6 +73,9 @@ export const MobxDashboardContent = observer(() => {
       <MobxDashboardHeader
         search={uiStore.search}
         isRefreshing={countersStore.isListFetching}
+        user={authStore.user ?? undefined}
+        isUserLoading={authStore.isLoading}
+        userError={authStore.error}
         onSearchChange={(value) => uiStore.setSearch(value)}
         onRefresh={() => {
           void countersStore.fetchCounters(uiStore.search)

@@ -6,6 +6,8 @@ import { styles } from './styles'
 type TanstackDashboardStatusRowProps = {
   search: string
   selectedCounterId: string | null
+  isAuthLoading: boolean
+  authErrorMessage: string | null
   isRemovingBan: boolean
   isSavingTrigger: boolean
   isTriggerSaveError: boolean
@@ -15,6 +17,8 @@ type TanstackDashboardStatusRowProps = {
 export function TanstackDashboardStatusRow({
   search,
   selectedCounterId,
+  isAuthLoading,
+  authErrorMessage,
   isRemovingBan,
   isSavingTrigger,
   isTriggerSaveError,
@@ -26,6 +30,12 @@ export function TanstackDashboardStatusRow({
 
   return (
     <div className={styles.statusRow}>
+      {isAuthLoading && <div className={styles.status}>Loading auth...</div>}
+
+      {authErrorMessage && (
+        <div className={styles.statusError}>{authErrorMessage}</div>
+      )}
+
       {countersQuery.isLoading && (
         <div className={styles.status}>Initial loading...</div>
       )}

@@ -1,6 +1,7 @@
 import { makeAutoObservable, runInAction } from 'mobx'
 
 import type { Counter } from '@/entities/counter/types'
+import { isApiError } from '@/shared/api/api-error'
 import { countersApi } from '@/shared/api/counters-api'
 import { getErrorMessage } from '@/shared/lib/errors'
 
@@ -22,6 +23,8 @@ export class CountersStore {
   currentSearch = ''
   pollingIntervalMs = 10_000
   private pollingTimerId: number | null = null
+  private listController: AbortController | null = null
+  private detailsController: AbortController | null = null
 
   constructor() {
     makeAutoObservable(this)
@@ -42,13 +45,16 @@ export class CountersStore {
   async fetchCounters(search: string, options?: { silent?: boolean }) {
     const silent = options?.silent ?? false
 
+    this.listController?.abort()
+    const controller = new AbortController()
+    this.listController = controller
     this.currentSearch = search
 
-    /** 
-     * @todo зачем разделять fetching и loading? 
-     * видимо, чтоб не показывать крутилку, но этого можно добиться проверкой наличия данных
-     * почему listError не во всех ошибках сбрасывается?
-    */
+    /**
+     * silent разделяет два состояния - начальная загрузка и фоновое обновление(silent)
+     * 
+     * Для начальной загрузки и фонового обновления свои состояния.
+     */
     if (silent) {
       this.isListFetching = true
     } else {
@@ -57,55 +63,93 @@ export class CountersStore {
     }
 
     try {
-      const counters = await countersApi.getList({
-        search: search || undefined,
-      })
+      const counters = await countersApi.getList(
+        {
+          search: search || undefined,
+        },
+        controller.signal,
+      )
+
+      /** Если для store существует более свежий запрос, то он уже установил
+       * свой this.listController, а результат текущегоз запроса(controller) игнорируется/
+       */
+      if (this.listController !== controller) {
+        return
+      }
 
       runInAction(() => {
         this.counters = counters
 
         if (this.selectedCounter) {
-          const actualSelected =
+          this.selectedCounter =
             counters.find((counter) => counter.id === this.selectedCounter?.id) ??
             null
-
-          this.selectedCounter = actualSelected
         }
       })
     } catch (error) {
+      if (
+        this.listController !== controller ||
+        (isApiError(error) && error.isAborted)
+      ) {
+        return
+      }
+
       runInAction(() => {
         this.listError = getErrorMessage(error)
       })
     } finally {
+      if (this.listController !== controller) {
+        return
+      }
+
       runInAction(() => {
         this.isListLoading = false
         this.isListFetching = false
+        this.listController = null
       })
     }
   }
 
   async fetchCounter(counterId: string) {
+    this.detailsController?.abort()
+    const controller = new AbortController()
+    this.detailsController = controller
+
     this.isDetailsLoading = true
     this.detailsError = null
 
     try {
-      const counter = await countersApi.getById(counterId)
+      const counter = await countersApi.getById(counterId, controller.signal)
+
+      if (this.detailsController !== controller) {
+        return
+      }
 
       runInAction(() => {
         this.selectedCounter = counter
-
-        /** @todo а надо менять? */
         this.counters = this.counters.map((item) =>
           item.id === counter.id ? counter : item,
         )
       })
     } catch (error) {
+      if (
+        this.detailsController !== controller ||
+        (isApiError(error) && error.isAborted)
+      ) {
+        return
+      }
+
       runInAction(() => {
         this.detailsError = getErrorMessage(error)
       })
     } finally {
+      if (this.detailsController !== controller) {
+        return
+      }
+
       runInAction(() => {
         this.isDetailsLoading = false
+        this.detailsController = null
       })
     }
   }
@@ -116,10 +160,8 @@ export class CountersStore {
       return
     }
 
-    const counter =
+    this.selectedCounter =
       this.counters.find((item) => item.id === counterId) ?? null
-
-    this.selectedCounter = counter
   }
 
   async removeBan(counterId: string) {
@@ -161,5 +203,12 @@ export class CountersStore {
       window.clearInterval(this.pollingTimerId)
       this.pollingTimerId = null
     }
+  }
+
+  abortPending() {
+    this.listController?.abort()
+    this.detailsController?.abort()
+    this.listController = null
+    this.detailsController = null
   }
 }

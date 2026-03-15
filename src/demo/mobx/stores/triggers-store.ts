@@ -1,17 +1,19 @@
 import { makeAutoObservable, runInAction } from 'mobx'
 
 import type { Trigger, UpdateTriggerPayload } from '@/entities/trigger/types'
+import { isApiError } from '@/shared/api/api-error'
 import { triggersApi } from '@/shared/api/triggers-api'
 import { getErrorMessage } from '@/shared/lib/errors'
 
 export class TriggersStore {
-  /** Это кэшик? */
   triggersByCounterId = new Map<string, Trigger[]>()
 
   isLoading = false
   isSaving = false
   error: string | null = null
   saveError: string | null = null
+  activeCounterId: string | null = null
+  private fetchController: AbortController | null = null
 
   constructor() {
     makeAutoObservable(this)
@@ -30,27 +32,52 @@ export class TriggersStore {
   }
 
   async fetchTriggers(counterId: string) {
+    this.fetchController?.abort()
+    const controller = new AbortController()
+    this.fetchController = controller
+    this.activeCounterId = counterId
+
     this.isLoading = true
     this.error = null
 
     try {
-      const triggers = await triggersApi.getList(counterId)
+      const triggers = await triggersApi.getList(counterId, controller.signal)
+
+      if (this.fetchController !== controller) {
+        return
+      }
 
       runInAction(() => {
         this.triggersByCounterId.set(counterId, triggers)
       })
     } catch (error) {
+      if (
+        this.fetchController !== controller ||
+        (isApiError(error) && error.isAborted)
+      ) {
+        return
+      }
+
       runInAction(() => {
         this.error = getErrorMessage(error)
       })
     } finally {
+      if (this.fetchController !== controller) {
+        return
+      }
+
       runInAction(() => {
         this.isLoading = false
+        this.fetchController = null
       })
     }
   }
 
-  async updateTrigger(counterId: string, triggerId: string, payload: UpdateTriggerPayload) {
+  async updateTrigger(
+    counterId: string,
+    triggerId: string,
+    payload: UpdateTriggerPayload,
+  ) {
     this.isSaving = true
     this.saveError = null
 
@@ -76,5 +103,11 @@ export class TriggersStore {
         this.isSaving = false
       })
     }
+  }
+
+  abortPending() {
+    this.fetchController?.abort()
+    this.fetchController = null
+    this.activeCounterId = null
   }
 }

@@ -10,6 +10,10 @@ export const MobxDashboardStatusRow = observer(() => {
     <div className={styles.statusRow}>
       {authStore.isLoading && <div className={styles.status}>Loading auth...</div>}
 
+      {authStore.error && (
+        <div className={styles.statusError}>{authStore.error}</div>
+      )}
+
       {countersStore.isListLoading && (
         <div className={styles.status}>Initial loading...</div>
       )}

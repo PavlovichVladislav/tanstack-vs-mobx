@@ -2,9 +2,11 @@ export const styles = {
   page: 'space-y-6',
   header: 'flex flex-col gap-4 md:flex-row md:items-end md:justify-between',
   headerText: 'space-y-2',
+  headerAside: 'flex flex-col gap-3 md:w-[320px]',
+  headerError: 'text-sm text-rose-300',
   title: 'text-2xl font-semibold tracking-tight text-white',
   description: 'text-sm leading-6 text-slate-300',
-  controls: 'flex flex-col gap-3 md:w-[320px]',
+  controls: 'flex flex-col gap-3',
   statusRow: 'flex flex-wrap items-center gap-3',
   status:
     'inline-flex rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-300',

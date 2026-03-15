@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite'
 import { useRemoveBan } from '@/demo/tanstack/mutations/use-remove-ban'
 import { useUpdateTrigger } from '@/demo/tanstack/mutations/use-update-trigger'
 import { useCounters } from '@/demo/tanstack/queries/use-counters'
+import { useMe } from '@/demo/tanstack/queries/use-me'
 import { useTanstackUiStore } from '@/demo/tanstack/stores/store-context'
 import { EditTriggerModalContainer } from '@/features/edit-trigger/ui/edit-trigger-modal-container'
 
@@ -16,17 +17,21 @@ import { TanstackTriggersSection } from './tanstack-triggers-section'
 
 export const TanstackDashboardContent = observer(() => {
   const uiStore = useTanstackUiStore()
+  const meQuery = useMe()
 
   const countersQuery = useCounters({
     search: uiStore.search,
   })
 
-  const removeBanMutation = useRemoveBan() /** onRemoveBan аналог */
-  const updateTriggerMutation = useUpdateTrigger() /** onUpdateTrigger аналог */
+  const removeBanMutation = useRemoveBan()
+  const updateTriggerMutation = useUpdateTrigger()
 
   const selectedCounter =
     countersQuery.data?.find((counter) => counter.id === uiStore.selectedCounterId) ??
     null
+
+  const authErrorMessage =
+    meQuery.isError && meQuery.error instanceof Error ? meQuery.error.message : null
 
   const handleRemoveBan = (counterId: string) => {
     removeBanMutation.mutate(counterId)
@@ -59,6 +64,9 @@ export const TanstackDashboardContent = observer(() => {
       <TanstackDashboardHeader
         search={uiStore.search}
         isRefreshing={countersQuery.isFetching}
+        user={meQuery.data}
+        isUserLoading={meQuery.isLoading}
+        userError={authErrorMessage}
         onSearchChange={(value) => uiStore.setSearch(value)}
         onRefresh={() => {
           void countersQuery.refetch()
@@ -68,6 +76,8 @@ export const TanstackDashboardContent = observer(() => {
       <TanstackDashboardStatusRow
         search={uiStore.search}
         selectedCounterId={uiStore.selectedCounterId}
+        isAuthLoading={meQuery.isLoading}
+        authErrorMessage={authErrorMessage}
         isRemovingBan={removeBanMutation.isPending}
         isSavingTrigger={updateTriggerMutation.isPending}
         isTriggerSaveError={updateTriggerMutation.isError}
