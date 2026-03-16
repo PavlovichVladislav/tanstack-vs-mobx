@@ -154,6 +154,10 @@ export class CountersStore {
     }
   }
 
+  /**
+   * Выбор для улучшения UX, пока не загружена фулл инфа, покажем то, что знаем о счетчике. 
+   * Остальные поля - skeltons.
+   */
   setSelectedFromList(counterId: string | null) {
     if (!counterId) {
       this.selectedCounter = null
@@ -194,7 +198,7 @@ export class CountersStore {
     }
 
     this.pollingTimerId = window.setInterval(() => {
-      void this.fetchCounters(this.currentSearch, { silent: true })
+      this.fetchCounters(this.currentSearch, { silent: true })
     }, this.pollingIntervalMs)
   }
 

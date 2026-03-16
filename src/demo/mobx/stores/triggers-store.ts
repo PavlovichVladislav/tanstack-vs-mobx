@@ -6,6 +6,9 @@ import { triggersApi } from '@/shared/api/triggers-api'
 import { getErrorMessage } from '@/shared/lib/errors'
 
 export class TriggersStore {
+  /** Кэш необходим, т.к. при переключении между счетчиками загружаются тригеры, 
+   * чтобы при переключении A - B - A не было лишнего запроса на тригеры A.
+   */
   triggersByCounterId = new Map<string, Trigger[]>()
 
   isLoading = false

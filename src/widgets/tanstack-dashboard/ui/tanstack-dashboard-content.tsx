@@ -26,7 +26,10 @@ export const TanstackDashboardContent = observer(() => {
   const removeBanMutation = useRemoveBan()
   const updateTriggerMutation = useUpdateTrigger()
 
-  const selectedCounter =
+  /** Фолбечное значение. Мы покажем превью счетчика, пока будут грузиться его детали.
+   * Отличие от mobx в том, что не храним отдельно в сторе.
+   */
+  const selectedFallbackCounter =
     countersQuery.data?.find((counter) => counter.id === uiStore.selectedCounterId) ??
     null
 
@@ -69,7 +72,7 @@ export const TanstackDashboardContent = observer(() => {
         userError={authErrorMessage}
         onSearchChange={(value) => uiStore.setSearch(value)}
         onRefresh={() => {
-          void countersQuery.refetch()
+          countersQuery.refetch()
         }}
       />
 
@@ -105,7 +108,7 @@ export const TanstackDashboardContent = observer(() => {
       <div className={styles.bottomGrid}>
         <TanstackCounterDetailsSection
           selectedCounterId={uiStore.selectedCounterId}
-          fallbackCounter={selectedCounter}
+          fallbackCounter={selectedFallbackCounter}
           isRemovingBan={removeBanMutation.isPending}
           onRemoveBan={handleRemoveBan}
         />

@@ -16,17 +16,23 @@ export const MobxDashboardContent = observer(() => {
   const { authStore, countersStore, triggersStore, uiStore } = useMobxStores()
 
   useEffect(() => {
-    void authStore.fetchMe()
+    authStore.fetchMe()
   }, [authStore])
 
   useEffect(() => {
-    void countersStore.fetchCounters(uiStore.search)
+    countersStore.fetchCounters(uiStore.search)
   }, [countersStore, uiStore.search])
 
   useEffect(() => {
     countersStore.startPolling()
 
-    /** При смене страницы не позволяем менять state неактуального экрана. */
+    /** При смене страницы не позволяем менять state неактуального экрана.
+     * 
+     * Польза также в том, что не держим лишние сетевые подключения, к-е уже не актуальны.
+     * Не делаем старые async flows, не работате лишний js.
+     * Убираем риск странных побочных эффектов, т.к. у вкладок могут шариться данные.
+     * В данном проекте при смене вкладке provider размонитруются, а сторы выпадут из памяти.
+    */
     return () => {
       countersStore.stopPolling()
       countersStore.abortPending()
@@ -41,12 +47,12 @@ export const MobxDashboardContent = observer(() => {
     }
 
     countersStore.setSelectedFromList(uiStore.selectedCounterId)
-    void countersStore.fetchCounter(uiStore.selectedCounterId)
-    void triggersStore.fetchTriggers(uiStore.selectedCounterId)
+    countersStore.fetchCounter(uiStore.selectedCounterId)
+    triggersStore.fetchTriggers(uiStore.selectedCounterId)
   }, [countersStore, triggersStore, uiStore.selectedCounterId])
 
   const handleRemoveBan = (counterId: string) => {
-    void countersStore.removeBan(counterId)
+    countersStore.removeBan(counterId)
   }
 
   const handleSubmitTrigger = async (payload: {
@@ -78,7 +84,7 @@ export const MobxDashboardContent = observer(() => {
         userError={authStore.error}
         onSearchChange={(value) => uiStore.setSearch(value)}
         onRefresh={() => {
-          void countersStore.fetchCounters(uiStore.search)
+          countersStore.fetchCounters(uiStore.search)
         }}
       />
 
