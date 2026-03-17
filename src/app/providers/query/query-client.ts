@@ -22,8 +22,8 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 10_000,
-      gcTime: 5 * 60_000,
+      staleTime: 10_000,  /** если ошиблись и кинули 2 запроса */
+      gcTime: 5 * 60_000, /** если закрыли страницу, то её query становятся инактивными, данные через 5 минут сотрутся */
       retry: shouldRetry,
       refetchOnWindowFocus: false,
     },

@@ -19,6 +19,7 @@ export const MobxDashboardContent = observer(() => {
     authStore.fetchMe()
   }, [authStore])
 
+  /** порефачить */
   useEffect(() => {
     countersStore.fetchCounters(uiStore.search)
   }, [countersStore, uiStore.search])

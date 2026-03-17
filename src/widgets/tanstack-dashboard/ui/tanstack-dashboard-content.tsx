@@ -19,6 +19,7 @@ export const TanstackDashboardContent = observer(() => {
   const uiStore = useTanstackUiStore()
   const meQuery = useMe()
 
+  /** @todo интеграция с suspense */
   const countersQuery = useCounters({
     search: uiStore.search,
   })
