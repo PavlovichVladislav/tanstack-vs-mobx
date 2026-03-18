@@ -168,6 +168,14 @@ export class CountersStore {
       this.counters.find((item) => item.id === counterId) ?? null
   }
 
+  clearSelection() {
+    this.detailsController?.abort()
+    this.detailsController = null
+    this.selectedCounter = null
+    this.isDetailsLoading = false
+    this.detailsError = null
+  }
+
   async removeBan(counterId: string) {
     this.isRemovingBan = true
     this.removeBanError = null

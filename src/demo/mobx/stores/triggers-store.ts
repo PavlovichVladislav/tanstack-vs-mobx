@@ -108,6 +108,14 @@ export class TriggersStore {
     }
   }
 
+  clearSelection() {
+    this.fetchController?.abort()
+    this.fetchController = null
+    this.activeCounterId = null
+    this.isLoading = false
+    this.error = null
+  }
+
   abortPending() {
     this.fetchController?.abort()
     this.fetchController = null
