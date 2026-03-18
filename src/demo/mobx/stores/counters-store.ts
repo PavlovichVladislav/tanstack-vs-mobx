@@ -5,11 +5,15 @@ import { isApiError } from '@/shared/api/api-error'
 import { countersApi } from '@/shared/api/counters-api'
 import { getErrorMessage } from '@/shared/lib/errors'
 
+const POLING_INTERVAL_MS = 10_000;
+
 export class CountersStore {
   counters: Counter[] = []
   selectedCounter: Counter | null = null
 
+  /** Начальная загрузка */
   isListLoading = false
+  /** Загрузка в background polling, когда данные уже есть и spinner не нужен. */
   isListFetching = false
   listError: string | null = null
 
@@ -21,7 +25,6 @@ export class CountersStore {
 
   /** Нужно для того, чтобы polling происходил с текущим значением в строке поиска. */
   currentSearch = ''
-  pollingIntervalMs = 10_000
   private pollingTimerId: number | null = null
   private listController: AbortController | null = null
   private detailsController: AbortController | null = null
@@ -207,7 +210,7 @@ export class CountersStore {
 
     this.pollingTimerId = window.setInterval(() => {
       this.fetchCounters(this.currentSearch, { silent: true })
-    }, this.pollingIntervalMs)
+    }, POLING_INTERVAL_MS)
   }
 
   stopPolling() {
