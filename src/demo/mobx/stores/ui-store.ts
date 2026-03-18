@@ -12,6 +12,7 @@ export class MobxUiStore {
 
   setSearch(value: string) {
     this.search = value
+    // this.rootStore.counrersStore.getCounters()
   }
 
   setSelectedCounterId(counterId: string | null) {
